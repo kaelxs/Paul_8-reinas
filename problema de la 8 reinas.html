@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8 Reinas - Hill Climbing</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #ffd700;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            align-items: start;
+        }
+        
+        .board-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            gap: 2px;
+            margin: 20px 0;
+            border: 3px solid rgba(255, 215, 0, 0.5);
+            border-radius: 12px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .cell {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 35px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .cell.white {
+            background: linear-gradient(135deg, #f0d9b5 0%, #e8c7a0 100%);
+            color: #333;
+        }
+        
+        .cell.black {
+            background: linear-gradient(135deg, #b58863 0%, #a0724e 100%);
+            color: #333;
+        }
+        
+        .cell.queen {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%) !important;
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+            animation: pulse 2s infinite;
+        }
+        
+        .cell.conflict {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%) !important;
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1.05); }
+            50% { transform: scale(1.1); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+        }
+        
+        .info-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .algorithm-info {
+            background: rgba(255, 215, 0, 0.1);
+            border-left: 4px solid #ffd700;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        
+        .algorithm-info h3 {
+            margin-top: 0;
+            color: #ffd700;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            min-width: 120px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+        
+        button.restart {
+            background: linear-gradient(45deg, #ff6b6b, #ff5252);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+        
+        button.restart:hover {
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .log {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+        
+        .log-entry {
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .board {
+                grid-template-columns: repeat(8, 45px);
+                grid-template-rows: repeat(8, 45px);
+            }
+            
+            .cell {
+                width: 45px;
+                height: 45px;
+                font-size: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏔️ 8 Reinas - Hill Climbing 👑</h1>
+        <p class="subtitle">Algoritmo de Búsqueda de Ascensión de Colinas</p>
+        
+        <div class="main-content">
+            <div class="board-section">
+                <div class="board" id="board"></div>
+                
+                <div class="controls">
+                    <button onclick="startHillClimbing()">🚀 Iniciar Hill Climbing</button>
+                    <button onclick="stepByStep()" id="stepBtn">📋 Paso a Paso</button>
+                    <button onclick="randomRestart()" class="restart">🎲 Reinicio Aleatorio</button>
+                    <button onclick="reset()">🔄 Reiniciar</button>
+                </div>
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar"></div>
+                </div>
+            </div>
+            
+            <div class="info-panel">
+                <div class="algorithm-info">
+                    <h3>🧗‍♂️ Hill Climbing Algorithm</h3>
+                    <p><strong>Funcionamiento:</strong></p>
+                    <ul>
+                        <li>Inicia con configuración aleatoria</li>
+                        <li>Evalúa función de fitness (conflictos)</li>
+                        <li>Busca mejores movimientos vecinos</li>
+                        <li>Se mueve al mejor vecino disponible</li>
+                        <li>Se repite hasta encontrar óptimo local</li>
+                    </ul>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="conflicts">8</div>
+                        <div class="stat-label">Conflictos</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="iterations">0</div>
+                        <div class="stat-label">Iteraciones</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="restarts">0</div>
+                        <div class="stat-label">Reinicios</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="fitness">0</div>
+                        <div class="stat-label">Fitness</div>
+                    </div>
+                </div>
+                
+                <div class="log" id="log">
+                    <div class="log-entry">🔄 Sistema iniciado. Listo para comenzar Hill Climbing...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class HillClimbingQueens {
+            constructor() {
+                this.board = Array(8).fill(0); // Posición de reina en cada columna
+                this.iterations = 0;
+                this.restarts = 0;
+                this.isRunning = false;
+                this.stepMode = false;
+                this.initialize();
+            }
+            
+            initialize() {
+                // Configuración inicial aleatoria
+                for (let i = 0; i < 8; i++) {
+                    this.board[i] = Math.floor(Math.random() * 8);
+                }
+                this.updateDisplay();
+                this.logMessage("🎲 Configuración inicial aleatoria generada");
+            }
+            
+            // Función de fitness: cuenta conflictos (queremos minimizar)
+            calculateConflicts() {
+                let conflicts = 0;
+                for (let i = 0; i < 8; i++) {
+                    for (let j = i + 1; j < 8; j++) {
+                        // Misma fila
+                        if (this.board[i] === this.board[j]) {
+                            conflicts++;
+                        }
+                        // Misma diagonal
+                        if (Math.abs(this.board[i] - this.board[j]) === Math.abs(i - j)) {
+                            conflicts++;
+                        }
+                    }
+                }
+                return conflicts;
+            }
+            
+            // Encuentra el mejor movimiento vecino
+            findBestNeighbor() {
+                let bestBoard = [...this.board];
+                let bestConflicts = this.calculateConflicts();
+                let improved = false;
+                
+                // Probar mover cada reina a cada posición posible
+                for (let col = 0; col < 8; col++) {
+                    let originalRow = this.board[col];
+                    
+                    for (let row = 0; row < 8; row++) {
+                        if (row !== originalRow) {
+                            this.board[col] = row;
+                            let conflicts = this.calculateConflicts();
+                            
+                            if (conflicts < bestConflicts) {
+                                bestConflicts = conflicts;
+                                bestBoard = [...this.board];
+                                improved = true;
+                            }
+                        }
+                    }
+                    this.board[col] = originalRow; // Restaurar
+                }
+                
+                return { board: bestBoard, conflicts: bestConflicts, improved };
+            }
+            
+            async hillClimbingStep() {
+                if (this.calculateConflicts() === 0) {
+                    this.logMessage("🎉 ¡Solución encontrada! Sin conflictos.");
+                    return false; // Terminado
+                }
+                
+                let result = this.findBestNeighbor();
+                
+                if (result.improved) {
+                    this.board = result.board;
+                    this.iterations++;
+                    this.logMessage(`📊 Iteración ${this.iterations}: Conflictos reducidos a ${result.conflicts}`);
+                    this.updateDisplay();
+                    return true; // Continuar
+                } else {
+                    this.logMessage("🔴 Óptimo local alcanzado. No hay mejores vecinos.");
+                    return false; // Atascado en óptimo local
+                }
+            }
+            
+            async startHillClimbing() {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                this.logMessage("🚀 Iniciando Hill Climbing...");
+                
+                while (this.isRunning) {
+                    let canContinue = await this.hillClimbingStep();
+                    
+                    if (!canContinue) {
+                        if (this.calculateConflicts() === 0) {
+                            this.logMessage("✅ ¡Problema resuelto exitosamente!");
+                        } else {
+                            this.logMessage("⚠️ Atascado en óptimo local. Usa 'Reinicio Aleatorio'.");
+                        }
+                        this.isRunning = false;
+                        break;
+                    }
+                    
+                    await this.sleep(500); // Pausa para visualización
+                }
+            }
+            
+            async stepByStep() {
+                if (this.isRunning) return;
+                
+                let canContinue = await this.hillClimbingStep();
+                if (!canContinue && this.calculateConflicts() > 0) {
+                    this.logMessage("⚠️ No se pueden hacer más movimientos. Reinicio necesario.");
+                }
+            }
+            
+            randomRestart() {
+                this.restarts++;
+                this.iterations = 0;
+                this.initialize();
+                this.logMessage(`🔄 Reinicio aleatorio #${this.restarts} ejecutado`);
+            }
+            
+            reset() {
+                this.isRunning = false;
+                this.iterations = 0;
+                this.restarts = 0;
+                this.initialize();
+                document.getElementById('log').innerHTML = '<div class="log-entry">🔄 Sistema reiniciado</div>';
+            }
+            
+            updateDisplay() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
+                
+                // Crear tablero visual
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = `cell ${(row + col) % 2 === 0 ? 'white' : 'black'}`;
+                        
+                        // Colocar reina si corresponde
+                        if (this.board[col] === row) {
+                            cell.classList.add('queen');
+                            cell.textContent = '♛';
+                            
+                            // Verificar si está en conflicto
+                            if (this.isQueenInConflict(row, col)) {
+                                cell.classList.add('conflict');
+                            }
+                        }
+                        
+                        boardElement.appendChild(cell);
+                    }
+                }
+                
+                // Actualizar estadísticas
+                const conflicts = this.calculateConflicts();
+                document.getElementById('conflicts').textContent = conflicts;
+                document.getElementById('iterations').textContent = this.iterations;
+                document.getElementById('restarts').textContent = this.restarts;
+                document.getElementById('fitness').textContent = Math.max(0, 28 - conflicts); // Fitness máximo es 28
+                
+                // Actualizar barra de progreso
+                const progress = Math.max(0, (28 - conflicts) / 28 * 100);
+                document.getElementById('progressBar').style.width = progress + '%';
+            }
+            
+            isQueenInConflict(row, col) {
+                for (let otherCol = 0; otherCol < 8; otherCol++) {
+                    if (otherCol !== col) {
+                        let otherRow = this.board[otherCol];
+                        // Misma fila o diagonal
+                        if (otherRow === row || Math.abs(otherRow - row) === Math.abs(otherCol - col)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+            
+            logMessage(message) {
+                const log = document.getElementById('log');
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            }
+            
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+        
+        // Instancia global del juego
+        let game = new HillClimbingQueens();
+        
+        // Funciones para botones
+        function startHillClimbing() {
+            game.startHillClimbing();
+        }
+        
+        function stepByStep() {
+            game.stepByStep();
+        }
+        
+        function randomRestart() {
+            game.randomRestart();
+        }
+        
+        function reset() {
+            game.reset();
+        }
+    </script>
+</body>
+</html>
